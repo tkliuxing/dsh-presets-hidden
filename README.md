@@ -50,6 +50,6 @@ pnpm dsh plugin --profile web add /Users/baihaoran/Code/github.com/tkliuxing/dsh
 ## 发布
 
 - CI：`.github/workflows/ci.yml` 会在 push/PR 时执行 `pnpm run check`。
-- Release：在 GitHub 上发布 Release 后，`.github/workflows/release.yml` 会自动构建、测试并发布到 npm（带 provenance）。需要在仓库的 `npm-publish` environment 中配置 `NPM_TOKEN` secret。
+- Release：在 GitHub 上发布 Release 后，`.github/workflows/release.yml` 会自动构建、测试并发布到 npm（带 provenance）。npm 侧已配置 **Trusted Publisher**，GitHub 侧无需设置 `NPM_TOKEN`，但 workflow 必须使用 `npm-publish` environment 并开启 `id-token: write` 权限。
 
 插件包声明了 `dsh.bundle` 和 `dsh.client`。Host 入口注册 `preset-visibility` 设置命名空间，使 loopback 页面上的偏好能够持久化到 `$DSH_HOME/settings.yaml`。
