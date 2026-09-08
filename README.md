@@ -13,13 +13,15 @@ DeepSeek Harness 的浏览器端预设显示与排序插件。它在“设置 ->
 - 隐藏当前空白会话所选预设时，插件会通过官方选择 API 切换到首个可见预设。
 - 隐藏全部预设时，新会话页不显示预设控件，Host 默认预设仍然生效。
 
-## 开发
+## 安装
 
-本项目的 DSH 类型依赖通过 `package.json` 中的 `link:` 指向本机 checkout：
+发布到 npm 后，可通过 DSH 插件机制直接安装：
 
-```text
-/Users/baihaoran/Code/github.com/tkliuxing/deepseek-harness
+```sh
+dsh plugin --profile web add dsh-presets-hidden
 ```
+
+## 开发
 
 构建并测试：
 
@@ -28,7 +30,9 @@ pnpm install
 pnpm run check
 ```
 
-## 安装到 Web profile
+若希望使用本机 DSH 源码 checkout 进行开发，可在 `.npmrc` 或 `package.json` 的 `pnpm.overrides` 中把相关 `@deepseek-ai/*` 依赖指向本地路径，替代默认的 registry 版本。
+
+## 安装到 Web profile（本地 bundle）
 
 先构建，再将当前目录作为本地 bundle 安装：
 
@@ -42,5 +46,10 @@ dsh plugin --profile web add /Users/baihaoran/Code/github.com/tkliuxing/dsh-pres
 ```sh
 pnpm dsh plugin --profile web add /Users/baihaoran/Code/github.com/tkliuxing/dsh-presets-hidden
 ```
+
+## 发布
+
+- CI：`.github/workflows/ci.yml` 会在 push/PR 时执行 `pnpm run check`。
+- Release：在 GitHub 上发布 Release 后，`.github/workflows/release.yml` 会自动构建、测试并发布到 npm（带 provenance）。需要在仓库的 `npm-publish` environment 中配置 `NPM_TOKEN` secret。
 
 插件包声明了 `dsh.bundle` 和 `dsh.client`。Host 入口注册 `preset-visibility` 设置命名空间，使 loopback 页面上的偏好能够持久化到 `$DSH_HOME/settings.yaml`。
