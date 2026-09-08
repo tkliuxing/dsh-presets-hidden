@@ -1,6 +1,10 @@
 # dsh-presets-hidden
 
+[English README](README.en.md)
+
 DeepSeek Harness 的浏览器端预设显示与排序插件。它在“设置 -> 预设显示”中提供搜索、显隐筛选、逐项开关和顺序调整，并用处理后的名单替换新会话页的 Agent 预设选择器。
+
+> **兼容性**：本插件针对 deepseek-harness 的 `dsh-v0.1.2-*` 版本开发并兼容，后续版本不保证兼容。
 
 ## 行为边界
 
