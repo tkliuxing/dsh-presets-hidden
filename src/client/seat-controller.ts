@@ -34,6 +34,8 @@ export class FilteredPresetSeatController {
     private readonly roster: SnapshotStore<RosterState>,
     private readonly visibility: SnapshotStore<VisibilityState>,
     private readonly currentSession: () => SessionLike | undefined,
+    /** Whether the new-session surface currently offers preset selection at all. */
+    private readonly pickerEnabled: () => boolean = () => true,
   ) {}
 
   private set(patch: Partial<SeatState>): void {
@@ -58,6 +60,11 @@ export class FilteredPresetSeatController {
     return this.pendingProjection.preset
   }
 
+  /** The Host picker policy and the developer-tools preference both allow choosing a preset. */
+  private selectable(): boolean {
+    return this.roster.getSnapshot().modeSelectionEnabled && this.pickerEnabled()
+  }
+
   private fallback(): string {
     const visible = this.visiblePresets()
     return visible.find(preset => preset.isDefault)?.id ?? visible[0]?.id ?? ''
@@ -65,6 +72,12 @@ export class FilteredPresetSeatController {
 
   async reconcile(): Promise<void> {
     if (this.store.getSnapshot().busy) return
+    // Without a picker the Host default applies; never switch a session nobody could choose for.
+    if (!this.selectable()) {
+      this.staged = undefined
+      this.set({ current: this.effectivePreset(this.currentSession()) ?? this.fallback(), error: null })
+      return
+    }
     const visible = this.visiblePresets()
     const visibleIds = new Set(visible.map(preset => preset.id))
     const fallback = this.fallback()
@@ -103,7 +116,7 @@ export class FilteredPresetSeatController {
   }
 
   async select(id: string): Promise<string | undefined> {
-    if (this.store.getSnapshot().busy) return undefined
+    if (this.store.getSnapshot().busy || !this.selectable()) return undefined
     if (!this.visiblePresets().some(preset => preset.id === id)) return undefined
     this.staged = id
     this.set({ current: id, error: null })

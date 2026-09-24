@@ -4,7 +4,10 @@ import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+// Type-only: pulls the `mainView` session reference source merge.
+import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+// Type-only: pulls the ctx.configForms service merge.
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { FilteredAgentPresetSeat } from './FilteredAgentPresetSeat.tsx'
 import { PresetVisibilitySection } from './PresetVisibilitySection.tsx'
 import { en, zh, type PresetVisibilityKey } from './locales.ts'
@@ -24,11 +27,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'settings.presetVisibility'
 const STYLE_ID = 'dsh-presets-hidden/styles'
 
-export const inject = ['slots', 'locale', 'remote', 'settingsScope', 'remote.agentPresets']
+export const inject = ['slots', 'locale', 'remote', 'configForms', 'remote.agentPresets']
 
 export function apply(ctx: ClientContext): void {
   const roster = new RosterController(ctx)
-  const hostScope = ctx.settingsScope.bind<VisibilitySettings>({ namespace: PRESET_VISIBILITY_NAMESPACE })
+  const hostScope = ctx.configForms.get<VisibilitySettings>(PRESET_VISIBILITY_NAMESPACE)
   const visibility = new VisibilityController({ scope: hostScope })
 
   ctx.effect(() => {
@@ -47,10 +50,13 @@ export function apply(ctx: ClientContext): void {
     return () => { style.remove() }
   }, 'presets-hidden: styles')
 
+  const developerTools = ctx.configForms.developerTools.enabled
+
   const visibilityFace = (): VisibilityFace => ({
     hooks: {
       roster: roster.store,
       presetVisibility: visibility.store,
+      showPresetPicker: developerTools,
     },
     load: () => roster.load(),
     toggle: id => { visibility.toggle(id) },
@@ -72,8 +78,10 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     const reload = (): void => { void roster.load() }
     const disposers = [
+      // Preset declarations and the picker policy are ordinary profile Config
+      // now, so any entry edit may move the roster; only our own writes cannot.
       ctx.remote.$on('settings/document-updated', (namespace) => {
-        if (namespace === 'agent-presets') reload()
+        if (namespace !== PRESET_VISIBILITY_NAMESPACE) reload()
       }),
       ctx.on('connection/reset', reload),
     ]
@@ -86,9 +94,12 @@ export function apply(ctx: ClientContext): void {
       roster.store,
       visibility.store,
       () => {
-        const state = scope.sessions.list.getSnapshot()
-        return state.current === undefined ? undefined : state.byId[state.current]
+        // The hero hands over to the session the main view retains, preferring a blank one.
+        const retained = Object.values(scope.sessions.list.getSnapshot().byId)
+          .filter(session => (session.retainedBy.mainView ?? 0) > 0)
+        return retained.find(session => session.blank) ?? retained[0]
       },
+      () => developerTools.getSnapshot(),
     )
 
     const seatFace = (): SeatFace => ({
@@ -96,6 +107,7 @@ export function apply(ctx: ClientContext): void {
         roster: roster.store,
         presetVisibility: visibility.store,
         filteredPresetSeat: seat.store,
+        showPresetPicker: developerTools,
       },
       load: async () => {
         await roster.load()
@@ -107,6 +119,7 @@ export function apply(ctx: ClientContext): void {
     scope.effect(() => {
       const stopRoster = roster.store.subscribe(() => { void seat.reconcile() })
       const stopVisibility = visibility.store.subscribe(() => { void seat.reconcile() })
+      const stopDeveloperTools = developerTools.subscribe(() => { void seat.reconcile() })
       const stopSessions = scope.sessions.list.subscribe(() => { void seat.apply() })
       const unregister = scope.slots.inject('conversation.hero.agentPreset', () => scope.slots.register({
         name: 'conversation.hero.agentPreset',
@@ -117,6 +130,7 @@ export function apply(ctx: ClientContext): void {
       return () => {
         stopRoster()
         stopVisibility()
+        stopDeveloperTools()
         stopSessions()
         unregister()
       }

@@ -32,7 +32,9 @@ jobs:
       - name: Build and test
         run: pnpm run check
 
+      # Trusted Publishing (OIDC) needs npm >= 11.5.1; Node 22 bundles npm 10.
+      - name: Upgrade npm
+        run: npm install -g npm@^11.5.1
+
       - name: Publish package
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance

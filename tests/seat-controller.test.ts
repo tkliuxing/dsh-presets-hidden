@@ -9,10 +9,11 @@ const roster: RosterState = {
   status: 'ready',
   error: null,
   presets: [
-    { id: 'standard', trust: 'system', isDefault: true },
-    { id: 'custom', trust: 'user' },
-    { id: 'broken', trust: 'user', broken: 'invalid composition' },
+    { id: 'standard', isDefault: true },
+    { id: 'custom' },
+    { id: 'broken', broken: 'invalid composition' },
   ],
+  modeSelectionEnabled: true,
 }
 
 describe('filtered preset seat', () => {
@@ -80,5 +81,43 @@ describe('filtered preset seat', () => {
 
     expect(select).not.toHaveBeenCalled()
     expect(controller.store.getSnapshot().current).toBe('')
+  })
+
+  it('leaves the Host default alone while the Host picker policy is off', async () => {
+    const select = vi.fn()
+    const ctx = { remote: { agentPresets: { select } } } as unknown as ClientContext
+    const controller = new FilteredPresetSeatController(
+      ctx,
+      createSnapshotStore<RosterState>({ ...roster, modeSelectionEnabled: false }),
+      createSnapshotStore<VisibilityState>({ hiddenIds: ['standard'], orderIds: [] }),
+      () => ({ id: SessionId('session-1'), blank: true, projectionValues: { agentPreset: 'standard' } }),
+    )
+
+    await controller.reconcile()
+    expect(await controller.select('custom')).toBeUndefined()
+
+    expect(select).not.toHaveBeenCalled()
+    expect(controller.store.getSnapshot().current).toBe('standard')
+  })
+
+  it('leaves the Host default alone while developer tools are off', async () => {
+    const select = vi.fn()
+    const ctx = { remote: { agentPresets: { select } } } as unknown as ClientContext
+    let developerTools = false
+    const controller = new FilteredPresetSeatController(
+      ctx,
+      createSnapshotStore(roster),
+      createSnapshotStore<VisibilityState>({ hiddenIds: ['standard'], orderIds: [] }),
+      () => ({ id: SessionId('session-1'), blank: true, projectionValues: { agentPreset: 'standard' } }),
+      () => developerTools,
+    )
+
+    await controller.reconcile()
+    expect(select).not.toHaveBeenCalled()
+
+    select.mockResolvedValue({ ok: true, value: 'custom' })
+    developerTools = true
+    await controller.reconcile()
+    expect(select).toHaveBeenCalledWith('session-1', 'custom')
   })
 })

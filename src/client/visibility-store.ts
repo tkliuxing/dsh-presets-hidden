@@ -1,8 +1,8 @@
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
-  HIDDEN_IDS_FIELD, ORDER_IDS_FIELD, type VisibilitySettings,
+  HIDDEN_IDS_FIELD, ORDER_IDS_FIELD, hasUserOverride, type VisibilitySettings,
 } from '../settings.ts'
 import type { VisibilityState } from './types.ts'
 
@@ -92,15 +92,17 @@ function opsForState(state: VisibilityState): SettingsPathOpView[] {
 
 export interface VisibilityControllerOptions {
   /** Optional Host-backed settings scope; when absent or unavailable, localStorage is used. */
-  scope?: SettingsScope<VisibilitySettings>
+  scope?: ConfigForm<VisibilitySettings>
 }
 
 /** Owns preset visibility and order preferences, preferring Host settings when available. */
 export class VisibilityController {
   readonly store: SnapshotStore<VisibilityState>
-  private readonly scope: SettingsScope<VisibilitySettings> | undefined
+  private readonly scope: ConfigForm<VisibilitySettings> | undefined
   private readonly unsubscribe: (() => void) | undefined
   private applyingFromScope = false
+  /** The legacy browser copy is offered to the Host at most once per page load. */
+  private migrationAttempted = false
 
   constructor(options?: VisibilityControllerOptions) {
     const scope = options?.scope
@@ -162,7 +164,7 @@ export class VisibilityController {
     this.store.set({ ...state, orderIds: [] })
   }
 
-  private resolveInitialState(scope?: SettingsScope<VisibilitySettings>): VisibilityState {
+  private resolveInitialState(scope?: ConfigForm<VisibilitySettings>): VisibilityState {
     if (scope !== undefined) {
       const snapshot = scope.getSnapshot()
       if (snapshot.status === 'ready' && snapshot.value !== undefined) {
@@ -175,13 +177,17 @@ export class VisibilityController {
   private onScopeChange(): void {
     const snapshot = this.scope!.getSnapshot()
 
-    // Migrate legacy localStorage data once: the Host scope is ready and has no
-    // user-overridden section yet, but the browser still holds old state.
-    if (snapshot.status === 'ready' && snapshot.user === undefined) {
+    // Migrate legacy localStorage data once: the Host scope is ready and the
+    // profile carries no override of either field yet, but the browser still holds old state.
+    if (snapshot.status === 'ready' && !hasUserOverride(snapshot.user)) {
       const localState = readLocalStorageState()
       if (localState.hiddenIds.length > 0 || localState.orderIds.length > 0) {
-        void this.scope!.mutate(opsForState(localState))
-        clearLocalStorageState()
+        if (this.migrationAttempted) return
+        this.migrationAttempted = true
+        // Keep the browser copy until the Host holds it; a refused write retries on the next page load.
+        this.scope!.mutate(opsForState(localState)).then((accepted) => {
+          if (accepted) clearLocalStorageState()
+        }, () => {})
         return
       }
     }
@@ -201,7 +207,8 @@ export class VisibilityController {
     const state = this.store.getSnapshot()
     const snapshot = this.scope!.getSnapshot()
     if (snapshot.status === 'ready' && snapshot.writable) {
-      void this.scope!.mutate(opsForState(state))
+      // A refusal reloads Host state through the form itself; a transport failure keeps the live value.
+      this.scope!.mutate(opsForState(state)).catch(() => {})
     } else {
       writeLocalStorageState(state)
     }

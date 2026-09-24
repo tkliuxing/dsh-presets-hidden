@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  IconAgentPresetOutline16,
-  IconChevronDownOutline14,
-  IconWarningOutline16,
+  IconAgentPresetOutlineRegular,
+  IconChevronDownOutlineRegular,
+  IconWarningOutlineRegular,
   Menu,
   Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { presetDisplayText } from '@deepseek-ai/dsh-agent-presets/display'
+import { presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type { SeatFace } from './types.ts'
 import { orderedPresets } from './visibility-store.ts'
 
@@ -19,7 +19,13 @@ export type FilteredAgentPresetSeatProps =
 const REFUSAL_HOLD_MS = 8000
 
 export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
-  const { load, select, t, useFilteredPresetSeat, usePresetVisibility, useRoster } = props
+  const {
+    load, select, sessionId, t, useFilteredPresetSeat, usePresetVisibility, useRoster,
+    useSessionRetainInfo, useShowPresetPicker,
+  } = props
+  const showPresetPicker = useShowPresetPicker(value => value)
+  // Embedded conversations render the same hero; only the main view may pick for its session.
+  const main = useSessionRetainInfo(info => sessionId === undefined || (info?.retainedBy.mainView ?? 0) > 0)
   const roster = useRoster(snapshot => snapshot)
   const visibility = usePresetVisibility(snapshot => snapshot)
   const seat = useFilteredPresetSeat(snapshot => snapshot)
@@ -28,9 +34,21 @@ export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
   const toastId = useRef(0)
   const anchorRef = useRef<HTMLButtonElement | null>(null)
 
+  // Same gate as the official chip: the Host picker policy and the developer-tools preference.
+  const visible = main && showPresetPicker && roster.modeSelectionEnabled
+
   useEffect(() => {
     void load()
   }, [load])
+
+  // The component stays registered while hidden, so an off/on flip must not revive an old menu or banner.
+  useEffect(() => {
+    if (visible) return
+    setOpen(false)
+    setToast(null)
+  }, [visible])
+
+  if (!visible) return null
 
   const hidden = new Set(visibility.hiddenIds)
   const options = orderedPresets(roster.presets, visibility.orderIds)
@@ -81,9 +99,9 @@ export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
             disabled={seat.busy}
             onClick={() => { setOpen(value => !value) }}
           >
-            <IconAgentPresetOutline16 className="dph-seat__icon" />
+            <IconAgentPresetOutlineRegular size={16} className="dph-seat__icon" />
             <span className="dph-seat__label">{chosenText.name}</span>
-            <IconChevronDownOutline14 className="dph-seat__chevron" />
+            <IconChevronDownOutlineRegular size={14} className="dph-seat__chevron" />
           </button>
         )}
       />
@@ -93,7 +111,7 @@ export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
           <Toast
             key={toast.id}
             text={toast.text}
-            icon={<IconWarningOutline16 />}
+            icon={<IconWarningOutlineRegular size={16} />}
             holdMs={REFUSAL_HOLD_MS}
             anchor={anchorRef.current}
             onDone={() => { setToast(null) }}

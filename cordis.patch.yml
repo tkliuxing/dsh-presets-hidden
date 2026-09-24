@@ -1,5 +1,6 @@
-# Browser-only preset visibility controls. The Host plugin is intentionally empty;
-# its package manifest supplies the client bundle declaration.
+# Browser preset visibility controls. The Host half only declares the live
+# Config (the `preset-visibility` settings namespace); the package manifest
+# supplies the client bundle declaration.
 - insert:
-    - id: ui-presets-hidden
+    - id: preset-visibility
       name: dsh-presets-hidden

@@ -4,13 +4,14 @@
 
 A browser-side DeepSeek Harness plugin for controlling agent-preset visibility and ordering. It adds search, visibility filtering, per-preset toggles, and reordering under **Settings -> Preset Visibility**, and replaces the Agent preset selector on the new-session page with the filtered list.
 
-> **Compatibility**: This plugin is developed against and compatible with deepseek-harness versions tagged `dsh-v0.1.2-*`. Newer versions may or may not work and are not guaranteed.
+> **Compatibility**: `0.2.x` requires deepseek-harness `0.1.7-rc.1` or later (`engines.dsh: >=0.1.7-rc.1`). Use plugin `0.1.x` with DSH `0.1.5` and earlier.
 
 ## Behavior boundaries
 
 - Both built-in and custom presets can be hidden and reordered.
-- On loopback pages, the visibility list and ordering are persisted to the `preset-visibility` section of `$DSH_HOME/settings.yaml`. On non-loopback pages, the current browser’s `localStorage` is still used, with the key `dsh.presets-hidden.visibility.v1`.
-- When first launched on a loopback page with an empty Host section, the plugin automatically migrates legacy `localStorage` data into `settings.yaml`.
+- On loopback pages, the visibility list and ordering are volatile fields of the plugin Config, saved to the active profile's `cordis.patch.yml` (entry id `preset-visibility`); edits apply live and are stored per profile. On non-loopback pages, the current browser’s `localStorage` is still used, with the key `dsh.presets-hidden.visibility.v1`.
+- Legacy data migrates automatically, once, while the profile stores neither field: after DSH 0.1.7 renames `$DSH_HOME/settings.yaml` to `settings.yaml.imported`, the plugin imports its `preset-visibility` section into the active profile; legacy `localStorage` data migrates the first time a loopback page opens.
+- Like the official chip, the new-session control is hidden (and the Host default applies) while **Agent presets → mode selection for new tasks** or developer tools are off; the settings section shows a notice.
 - Move-up and move-down operate on the full list; when search or visibility filtering is active, the reorder buttons are disabled to avoid ambiguous moves across invisible items.
 - Newly created custom presets are appended to the end of the existing order; **Restore default order** reverts to the Host roster order.
 - Only the new-session page preset selector is affected. The official **Agent Presets** management page, session titles, old-session recovery, direct API calls, and plugin diagnostics still use the full list.
@@ -56,4 +57,4 @@ pnpm dsh plugin --profile web add /Users/baihaoran/Code/github.com/tkliuxing/dsh
 - CI: `.github/workflows/ci.yml` runs `pnpm run check` on push/PR.
 - Release: After creating a Release on GitHub, `.github/workflows/release.yml` automatically builds, tests, and publishes to npm with provenance. npm is configured to use **Trusted Publisher**, so no `NPM_TOKEN` secret is required on the GitHub side; the workflow only needs the `npm-publish` environment and `id-token: write` permission.
 
-The package declares `dsh.bundle` and `dsh.client`. The Host entry registers the `preset-visibility` settings namespace, allowing loopback-page preferences to be persisted to `$DSH_HOME/settings.yaml`.
+The package declares `dsh.bundle` and `dsh.client`. The Host entry exports a `Config` with volatile fields, which DSH's settings service serves as the `preset-visibility` form (the generated Plugins-page form is turned off; edit under **Settings → Preset display**).

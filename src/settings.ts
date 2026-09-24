@@ -1,8 +1,10 @@
-/** Host settings namespace for the preset visibility plugin. */
+/** Settings namespace and field names shared by the Host Config and the browser form. */
 
-import z from '@deepseek-ai/schemastery'
-
-/** Settings namespace owned by the preset-visibility plugin. */
+/**
+ * Profile entry id the bundle patch mounts this plugin under. DSH serves a
+ * plugin's volatile Config as the settings namespace named after its entry id,
+ * and imports a removed `settings.yaml` section into the entry of the same id.
+ */
 export const PRESET_VISIBILITY_NAMESPACE = 'preset-visibility'
 
 /** Field carrying the ordered list of preset ids. */
@@ -11,7 +13,7 @@ export const ORDER_IDS_FIELD = 'orderIds'
 /** Field carrying the list of hidden preset ids. */
 export const HIDDEN_IDS_FIELD = 'hiddenIds'
 
-/** Durable preset visibility section shared by the Host schema and the browser scope. */
+/** Plain preset visibility values as the browser form reads and writes them. */
 export interface VisibilitySettings {
   /** Ordered list of preset ids. */
   orderIds: string[]
@@ -19,8 +21,11 @@ export interface VisibilitySettings {
   hiddenIds: string[]
 }
 
-/** Durable preset visibility schema; also the wire envelope the browser scope validates against. */
-export const VisibilitySettingsSchema: z<VisibilitySettings> = z.object({
-  [ORDER_IDS_FIELD]: z.array(z.string()).default([]),
-  [HIDDEN_IDS_FIELD]: z.array(z.string()).default([]),
-})
+/**
+ * Whether a stored profile layer already overrides either field. Presence, not
+ * value, marks an override: an explicitly emptied list is still a choice.
+ */
+export function hasUserOverride(user: unknown): boolean {
+  if (typeof user !== 'object' || user === null) return false
+  return Object.hasOwn(user, HIDDEN_IDS_FIELD) || Object.hasOwn(user, ORDER_IDS_FIELD)
+}

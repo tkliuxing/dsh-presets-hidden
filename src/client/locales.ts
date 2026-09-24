@@ -5,7 +5,7 @@ export type PresetVisibilityKey =
   | 'filterLabel' | 'filterAll' | 'filterVisible' | 'filterHidden' | 'showAll' | 'loading'
   | 'visible' | 'hidden' | 'builtInBadge' | 'customBadge' | 'orderGroup'
   | 'defaultBadge' | 'brokenBadge' | 'noDescription' | 'summary'
-  | 'emptyRoster' | 'emptyFilter' | 'loadError' | 'retry' | 'allHiddenNotice'
+  | 'emptyRoster' | 'emptyFilter' | 'loadError' | 'retry' | 'allHiddenNotice' | 'pickerOffNotice'
   | 'pickerHint' | 'switchRefused' | 'switchLabel' | 'resetOrder'
   | 'moveUp' | 'moveDown' | 'moveUpLabel' | 'moveDownLabel' | 'reorderFilteredHint'
   | 'presetStandardName' | 'presetStandardDescription'
@@ -16,7 +16,7 @@ export type PresetVisibilityKey =
 export const en: Record<PresetVisibilityKey, string> = {
   nav: 'Preset display',
   title: 'Preset display and order',
-  intro: 'Choose and order the agent presets shown when starting a new session. These preferences are stored in this browser.',
+  intro: 'Choose and order the agent presets shown when starting a new session. On loopback pages these preferences are saved to the active profile; otherwise they stay in this browser.',
   searchLabel: 'Search presets',
   searchPlaceholder: 'Search name or identifier',
   filterLabel: 'Preset visibility filter',
@@ -45,6 +45,7 @@ export const en: Record<PresetVisibilityKey, string> = {
   loadError: 'Could not load agent presets.',
   retry: 'Retry',
   allHiddenNotice: 'All presets are hidden. The new-session preset control is not shown; the Host default still applies.',
+  pickerOffNotice: 'The new-session preset picker is turned off (Agent presets settings or developer tools), so the Host default applies. These preferences take effect once it is shown.',
   pickerHint: 'Visible agent presets for the session you are about to start',
   switchRefused: 'Could not switch to {name}: {reason}',
   switchLabel: 'Show {name} in the new-session picker',
@@ -61,7 +62,7 @@ export const en: Record<PresetVisibilityKey, string> = {
 export const zh: Record<PresetVisibilityKey, string> = {
   nav: '预设显示',
   title: '预设显示与顺序',
-  intro: '选择新会话中显示的 Agent 预设并调整排列顺序。这些偏好仅保存在当前浏览器。',
+  intro: '选择新会话中显示的 Agent 预设并调整排列顺序。在 loopback 页面上这些偏好保存到当前 profile，否则仅保存在当前浏览器。',
   searchLabel: '搜索预设',
   searchPlaceholder: '搜索名称或标识符',
   filterLabel: '预设显隐筛选',
@@ -90,6 +91,7 @@ export const zh: Record<PresetVisibilityKey, string> = {
   loadError: '无法加载 Agent 预设。',
   retry: '重试',
   allHiddenNotice: '所有预设均已隐藏。新会话中将不显示预设控件，但 Host 默认预设仍会生效。',
+  pickerOffNotice: '新会话预设选择器当前已关闭（Agent 预设设置或开发者工具），将使用 Host 默认预设。选择器显示后这些偏好才会生效。',
   pickerHint: '即将开始的会话中可见的 Agent 预设',
   switchRefused: '无法切换到「{name}」：{reason}',
   switchLabel: '在新会话选择器中显示「{name}」',

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  IconChevronDownOutline14,
-  IconChevronUpOutline14,
-  IconRefreshOutline16,
-  IconSearchOutline16,
+  IconChevronDownOutlineRegular,
+  IconChevronUpOutlineRegular,
+  IconRefreshOutlineRegular,
+  IconSearchOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { presetDisplayText } from '@deepseek-ai/dsh-agent-presets/display'
+import { isBuiltInPreset, presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type { VisibilityFace } from './types.ts'
 import type { PresetVisibilityKey } from './locales.ts'
 import { searchablePresetText } from './locales.ts'
@@ -21,8 +21,9 @@ type Filter = 'all' | 'visible' | 'hidden'
 
 export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
   const {
-    load, move, resetOrder, showAll, t, toggle, usePresetVisibility, useRoster,
+    load, move, resetOrder, showAll, t, toggle, usePresetVisibility, useRoster, useShowPresetPicker,
   } = props
+  const showPresetPicker = useShowPresetPicker(value => value)
   const roster = useRoster(snapshot => snapshot)
   const visibility = usePresetVisibility(snapshot => snapshot)
   const [query, setQuery] = useState('')
@@ -72,7 +73,7 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
       <div className="dph-toolbar">
         <label className="dph-search">
           <span className="dph-sr-only">{t('searchLabel')}</span>
-          <IconSearchOutline16 />
+          <IconSearchOutlineRegular size={16} />
           <input
             type="search"
             value={query}
@@ -107,12 +108,15 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
             disabled={visibility.orderIds.length === 0}
             onClick={resetOrder}
           >
-            <IconRefreshOutline16 size={14} />
+            <IconRefreshOutlineRegular size={14} />
             {t('resetOrder')}
           </button>
         </div>
       </div>
 
+      {roster.status === 'ready' && (!roster.modeSelectionEnabled || !showPresetPicker)
+        ? <p className="dph-notice" role="status">{t('pickerOffNotice')}</p>
+        : null}
       {healthyCount > 0 && visibleHealthyCount === 0
         ? <p className="dph-notice" role="status">{t('allHiddenNotice')}</p>
         : null}
@@ -151,7 +155,7 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
                       <div className="dph-row__top">
                         <span className="dph-row__name">{text.name}</span>
                         <span className="dph-badge">
-                          {t(preset.trust === 'system' ? 'builtInBadge' : 'customBadge')}
+                          {t(isBuiltInPreset(preset) ? 'builtInBadge' : 'customBadge')}
                         </span>
                         {preset.isDefault === true
                           ? <span className="dph-badge">{t('defaultBadge')}</span>
@@ -173,7 +177,7 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
                           aria-label={t('moveUpLabel', { name: text.name })}
                           onClick={() => { move(preset.id, -1, rosterIds) }}
                         >
-                          <IconChevronUpOutline14 />
+                          <IconChevronUpOutlineRegular size={14} />
                         </button>
                         <button
                           type="button"
@@ -183,7 +187,7 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
                           aria-label={t('moveDownLabel', { name: text.name })}
                           onClick={() => { move(preset.id, 1, rosterIds) }}
                         >
-                          <IconChevronDownOutline14 />
+                          <IconChevronDownOutlineRegular size={14} />
                         </button>
                       </div>
                       <span className="dph-row__state">{t(isHidden ? 'hidden' : 'visible')}</span>

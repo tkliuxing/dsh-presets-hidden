@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { VisibilitySettings } from '../src/settings.ts'
 import {
@@ -77,14 +77,14 @@ describe('VisibilityController', () => {
 function createMockScope(initial: {
   status: 'loading' | 'ready' | 'unavailable'
   value?: VisibilitySettings
-  user?: VisibilitySettings
+  user?: Partial<VisibilitySettings>
   writable?: boolean
-}): SettingsScope<VisibilitySettings> & { mutations: SettingsPathOpView[][]; setSnapshot(snapshot: typeof initial): void } {
+}, accept = true): ConfigForm<VisibilitySettings> & { mutations: SettingsPathOpView[][]; setSnapshot(snapshot: typeof initial): void } {
   let snapshot = initial
   const listeners = new Set<() => void>()
   const mutations: SettingsPathOpView[][] = []
 
-  const scope: SettingsScope<VisibilitySettings> = {
+  const scope: ConfigForm<VisibilitySettings> = {
     getSnapshot: () => ({
       status: snapshot.status,
       value: snapshot.value,
@@ -93,16 +93,17 @@ function createMockScope(initial: {
       revision: 1,
       writable: snapshot.writable ?? false,
       mode: snapshot.status === 'ready' ? 'host' : 'memory',
-    }) as ReturnType<SettingsScope<VisibilitySettings>['getSnapshot']>,
+    }) as ReturnType<ConfigForm<VisibilitySettings>['getSnapshot']>,
     subscribe: (listener) => {
       listeners.add(listener)
       return () => { listeners.delete(listener) }
     },
     mutate: async (ops) => {
       mutations.push([...ops])
+      return accept
     },
-    set: async () => {},
-    unset: async () => {},
+    set: async () => true,
+    unset: async () => true,
   }
 
   return Object.assign(scope, {
@@ -134,7 +135,7 @@ describe('VisibilityController with Host scope', () => {
     })
   })
 
-  it('migrates legacy localStorage data when the Host section is empty', () => {
+  it('migrates legacy localStorage data when the Host section is empty', async () => {
     localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify({
       hiddenIds: ['minimal'],
       orderIds: ['custom', 'standard'],
@@ -147,7 +148,40 @@ describe('VisibilityController with Host scope', () => {
       { op: 'set', path: ['hiddenIds'], value: ['minimal'] },
       { op: 'set', path: ['orderIds'], value: ['custom', 'standard'] },
     ])
+    await Promise.resolve()
     expect(localStorage.getItem(VISIBILITY_STORAGE_KEY)).toBeNull()
+  })
+
+  it('keeps the browser copy when the Host refuses the migration, and offers it only once', async () => {
+    localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify({ hiddenIds: ['minimal'], orderIds: [] }))
+    const scope = createMockScope({ status: 'ready', value: { hiddenIds: [], orderIds: [] }, writable: true }, false)
+    new VisibilityController({ scope })
+    await Promise.resolve()
+
+    expect(localStorage.getItem(VISIBILITY_STORAGE_KEY)).not.toBeNull()
+    scope.setSnapshot({ status: 'ready', value: { hiddenIds: [], orderIds: [] }, writable: true })
+    expect(scope.mutations).toHaveLength(1)
+  })
+
+  it('migrates when the profile layer exists but stores neither field', () => {
+    localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify({ hiddenIds: ['minimal'], orderIds: [] }))
+    const scope = createMockScope({
+      status: 'ready', value: { hiddenIds: [], orderIds: [] }, user: {}, writable: true,
+    })
+    new VisibilityController({ scope })
+
+    expect(scope.mutations).toHaveLength(1)
+  })
+
+  it('keeps an explicit Host override instead of re-migrating localStorage', () => {
+    localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify({ hiddenIds: ['minimal'], orderIds: [] }))
+    const scope = createMockScope({
+      status: 'ready', value: { hiddenIds: [], orderIds: [] }, user: { hiddenIds: [] }, writable: true,
+    })
+    const controller = new VisibilityController({ scope })
+
+    expect(scope.mutations).toHaveLength(0)
+    expect(controller.store.getSnapshot()).toEqual({ hiddenIds: [], orderIds: [] })
   })
 
   it('writes store changes to the Host scope when writable', () => {

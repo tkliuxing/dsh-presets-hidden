@@ -1,9 +1,8 @@
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
 
 /** Preset fields consumed by the browser-only visibility surfaces. */
 export interface PresetRecord {
   readonly id: string
-  readonly trust: 'system' | 'user'
   readonly name?: string
   readonly description?: string
   readonly broken?: string
@@ -14,6 +13,8 @@ export interface RosterState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error'
   readonly error: string | null
   readonly presets: readonly PresetRecord[]
+  /** Whether the Host exposes preset selection on new-session surfaces. */
+  readonly modeSelectionEnabled: boolean
 }
 
 export interface VisibilityState {
@@ -31,6 +32,8 @@ export interface VisibilityFace {
   readonly hooks: {
     readonly roster: SnapshotStore<RosterState>
     readonly presetVisibility: SnapshotStore<VisibilityState>
+    /** Developer-tools preference that gates the official picker. */
+    readonly showPresetPicker: ObservableSnapshot<boolean>
   }
   readonly load: () => Promise<void>
   readonly toggle: (id: string) => void
@@ -44,6 +47,8 @@ export interface SeatFace {
     readonly roster: SnapshotStore<RosterState>
     readonly presetVisibility: SnapshotStore<VisibilityState>
     readonly filteredPresetSeat: SnapshotStore<SeatState>
+    /** Developer-tools preference that gates the official picker. */
+    readonly showPresetPicker: ObservableSnapshot<boolean>
   }
   readonly load: () => Promise<void>
   readonly select: (id: string) => Promise<string | undefined>
