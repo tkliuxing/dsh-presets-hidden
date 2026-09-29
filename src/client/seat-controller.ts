@@ -60,7 +60,7 @@ export class FilteredPresetSeatController {
     return this.pendingProjection.preset
   }
 
-  /** The Host picker policy and the developer-tools preference both allow choosing a preset. */
+  /** Developer tools and any Host chooser policy an older Host still publishes must both allow it. */
   private selectable(): boolean {
     return this.roster.getSnapshot().modeSelectionEnabled && this.pickerEnabled()
   }

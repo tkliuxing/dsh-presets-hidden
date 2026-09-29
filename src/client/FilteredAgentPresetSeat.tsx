@@ -34,7 +34,8 @@ export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
   const toastId = useRef(0)
   const anchorRef = useRef<HTMLButtonElement | null>(null)
 
-  // Same gate as the official chip: the Host picker policy and the developer-tools preference.
+  // The same gate as the official chip: Developer tools, plus the Host's own
+  // chooser policy on the versions that still publish one (see RosterController).
   const visible = main && showPresetPicker && roster.modeSelectionEnabled
 
   useEffect(() => {

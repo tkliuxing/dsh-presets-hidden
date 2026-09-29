@@ -49,11 +49,16 @@ export class RosterController {
       ...(preset.broken === undefined ? {} : { broken: preset.broken }),
       ...(preset.isDefault === undefined ? {} : { isDefault: preset.isDefault }),
     }))
+    // DSH 0.1.7-rc.2 retired the Host's chooser policy: `agentPresets/list` now
+    // answers presets only and Developer tools alone gate preset selection. An
+    // absent field therefore withholds nothing, while a policy an older Host
+    // still publishes stays binding.
+    const policy = result.value as { readonly modeSelectionEnabled?: boolean }
     this.store.set({
       status: 'ready',
       error: null,
       presets,
-      modeSelectionEnabled: result.value.modeSelectionEnabled,
+      modeSelectionEnabled: policy.modeSelectionEnabled ?? true,
     })
   }
 }

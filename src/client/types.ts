@@ -13,7 +13,11 @@ export interface RosterState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error'
   readonly error: string | null
   readonly presets: readonly PresetRecord[]
-  /** Whether the Host exposes preset selection on new-session surfaces. */
+  /**
+   * Whether the Host exposes preset selection on new-session surfaces. Hosts
+   * that publish no chooser policy (DSH 0.1.7-rc.2 and later) report `true`:
+   * there, Developer tools are the only gate over the picker.
+   */
   readonly modeSelectionEnabled: boolean
 }
 
