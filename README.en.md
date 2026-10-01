@@ -7,6 +7,8 @@ A browser-side DeepSeek Harness plugin for controlling agent-preset visibility a
 > **Compatibility**: `0.2.x` requires deepseek-harness `0.1.7-rc.1` or later (`engines.dsh: >=0.1.7-rc.1`). Use plugin `0.1.x` with DSH `0.1.5` and earlier.
 >
 > From `0.2.1` the plugin also supports `0.1.7-rc.2`, which dropped the Host-side "mode selection for new tasks" policy field and gates preset selection on **Developer tools** alone. The plugin reads a missing policy field as "selection allowed", so it no longer reports the picker as off.
+>
+> From `0.2.2` the `peerDependencies` cover both the `0.1.7-rc.1` and `0.2.0-rc.1` lines, so DSH `0.2.0-rc.x` no longer classifies this plugin as incompatible (through `0.2.1` the peer range was `^0.1.7-rc.1`, which DSH's plugin compatibility gate rejected at install time and skipped at load time). The 0.2 line is verified through the real install gate, the build, and the full unit-test suite.
 
 ## Behavior boundaries
 
