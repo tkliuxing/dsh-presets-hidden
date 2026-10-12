@@ -10,7 +10,7 @@ import { isBuiltInPreset, presetDisplayText } from '@deepseek-ai/dsh-agent-prese
 import type { VisibilityFace } from './types.ts'
 import type { PresetVisibilityKey } from './locales.ts'
 import { searchablePresetText } from './locales.ts'
-import { orderedPresets } from './visibility-store.ts'
+import { orderedPresets, requiresCodingTools } from './visibility-store.ts'
 
 export type PresetVisibilitySectionProps =
   PropsRuntime<'settings.section'>
@@ -21,9 +21,9 @@ type Filter = 'all' | 'visible' | 'hidden'
 
 export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
   const {
-    load, move, resetOrder, showAll, t, toggle, usePresetVisibility, useRoster, useShowPresetPicker,
+    load, move, resetOrder, showAll, t, toggle, usePresetVisibility, useRoster, useCodingToolsEnabled,
   } = props
-  const showPresetPicker = useShowPresetPicker(value => value)
+  const codingToolsEnabled = useCodingToolsEnabled(value => value)
   const roster = useRoster(snapshot => snapshot)
   const visibility = usePresetVisibility(snapshot => snapshot)
   const [query, setQuery] = useState('')
@@ -114,7 +114,7 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
         </div>
       </div>
 
-      {roster.status === 'ready' && (!roster.modeSelectionEnabled || !showPresetPicker)
+      {roster.status === 'ready' && !roster.modeSelectionEnabled
         ? <p className="dph-notice" role="status">{t('pickerOffNotice')}</p>
         : null}
       {healthyCount > 0 && visibleHealthyCount === 0
@@ -162,6 +162,9 @@ export function PresetVisibilitySection(props: PresetVisibilitySectionProps) {
                           : null}
                         {preset.broken !== undefined
                           ? <span className="dph-badge dph-badge--error" title={preset.broken}>{t('brokenBadge')}</span>
+                          : null}
+                        {preset.broken === undefined && !codingToolsEnabled && requiresCodingTools(preset)
+                          ? <span className="dph-badge dph-badge--muted" title={t('codingToolsHint')}>{t('codingToolsBadge')}</span>
                           : null}
                       </div>
                       <span className="dph-row__desc">{text.description ?? t('noDescription')}</span>

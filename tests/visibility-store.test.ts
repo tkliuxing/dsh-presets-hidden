@@ -5,10 +5,13 @@ import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { VisibilitySettings } from '../src/settings.ts'
 import {
   normalizeVisibilityState,
+  offeredPresets,
   orderedPresets,
+  requiresCodingTools,
   VisibilityController,
   VISIBILITY_STORAGE_KEY,
 } from '../src/client/visibility-store.ts'
+import type { RosterState, VisibilityState } from '../src/client/types.ts'
 
 describe('VisibilityController', () => {
   beforeEach(() => { localStorage.clear() })
@@ -220,5 +223,50 @@ describe('VisibilityController with Host scope', () => {
       hiddenIds: ['standard'],
       orderIds: [],
     })
+  })
+})
+
+describe('Coding Tools availability', () => {
+  const roster: RosterState = {
+    status: 'ready',
+    error: null,
+    presets: [
+      { id: 'standard', isDefault: true },
+      { id: 'ptc' },
+      { id: 'minimal' },
+      { id: 'cordis' },
+      { id: 'named-ptc', name: 'Named PTC' },
+      { id: 'broken-ptc', broken: 'invalid composition' },
+    ],
+    modeSelectionEnabled: true,
+  }
+  const nothingHidden: VisibilityState = { hiddenIds: [], orderIds: [] }
+
+  it('withholds only the shipped PTC and Minimal presets', () => {
+    expect(roster.presets.filter(requiresCodingTools).map(preset => preset.id))
+      .toEqual(['ptc', 'minimal'])
+  })
+
+  it('keeps every preset while Coding Tools are on', () => {
+    expect(offeredPresets(roster, nothingHidden, true).map(preset => preset.id))
+      .toEqual(['standard', 'ptc', 'minimal', 'cordis', 'named-ptc'])
+  })
+
+  it('drops the PTC and Minimal presets while Coding Tools are off', () => {
+    expect(offeredPresets(roster, nothingHidden, false).map(preset => preset.id))
+      .toEqual(['standard', 'cordis', 'named-ptc'])
+  })
+
+  it('still drops hidden and broken presets, and keeps the reader order', () => {
+    expect(offeredPresets(roster, { hiddenIds: ['standard'], orderIds: ['cordis'] }, false)
+      .map(preset => preset.id)).toEqual(['cordis', 'named-ptc'])
+  })
+
+  it('offers nothing when Coding Tools are off and no other preset exists', () => {
+    const onlyCodingTools: RosterState = {
+      ...roster,
+      presets: [{ id: 'ptc', isDefault: true }, { id: 'minimal' }],
+    }
+    expect(offeredPresets(onlyCodingTools, nothingHidden, false)).toEqual([])
   })
 })

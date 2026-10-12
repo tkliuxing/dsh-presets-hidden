@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { FilteredPresetSeatController, healthyVisible } from '../src/client/seat-controller.ts'
+import { FilteredPresetSeatController } from '../src/client/seat-controller.ts'
+import { offeredPresets } from '../src/client/visibility-store.ts'
 import type { RosterState, VisibilityState } from '../src/client/types.ts'
 
 const roster: RosterState = {
@@ -18,10 +19,10 @@ const roster: RosterState = {
 
 describe('filtered preset seat', () => {
   it('applies preferred order before excluding hidden and broken presets', () => {
-    expect(healthyVisible(roster, {
+    expect(offeredPresets(roster, {
       hiddenIds: ['standard'],
       orderIds: ['broken', 'custom', 'standard'],
-    }).map(preset => preset.id)).toEqual(['custom'])
+    }, true).map(preset => preset.id)).toEqual(['custom'])
   })
 
   it('moves a blank session away from a hidden Host default', async () => {
@@ -100,24 +101,32 @@ describe('filtered preset seat', () => {
     expect(controller.store.getSnapshot().current).toBe('standard')
   })
 
-  it('leaves the Host default alone while developer tools are off', async () => {
-    const select = vi.fn()
+  it('withholds PTC and Minimal without giving up the picker while Coding Tools are off', async () => {
+    const select = vi.fn(async (_sessionId, presetId: string) => ({ ok: true as const, value: presetId }))
     const ctx = { remote: { agentPresets: { select } } } as unknown as ClientContext
-    let developerTools = false
+    let codingTools = false
     const controller = new FilteredPresetSeatController(
       ctx,
-      createSnapshotStore(roster),
-      createSnapshotStore<VisibilityState>({ hiddenIds: ['standard'], orderIds: [] }),
-      () => ({ id: SessionId('session-1'), blank: true, projectionValues: { agentPreset: 'standard' } }),
-      () => developerTools,
+      createSnapshotStore<RosterState>({
+        ...roster,
+        presets: [{ id: 'standard', isDefault: true }, { id: 'custom' }, { id: 'ptc' }, { id: 'minimal' }],
+      }),
+      createSnapshotStore<VisibilityState>({ hiddenIds: [], orderIds: [] }),
+      () => ({ id: SessionId('session-1'), blank: true, projectionValues: { agentPreset: 'ptc' } }),
+      () => codingTools,
     )
 
+    // The stored PTC choice is unavailable, so the blank session lands on the fallback.
     await controller.reconcile()
-    expect(select).not.toHaveBeenCalled()
+    expect(select).toHaveBeenCalledWith('session-1', 'standard')
+    expect(controller.store.getSnapshot().current).toBe('standard')
 
-    select.mockResolvedValue({ ok: true, value: 'custom' })
-    developerTools = true
+    expect(await controller.select('minimal')).toBeUndefined()
+    expect(select).toHaveBeenCalledTimes(1)
+
+    codingTools = true
     await controller.reconcile()
-    expect(select).toHaveBeenCalledWith('session-1', 'custom')
+    expect(await controller.select('minimal')).toBeUndefined()
+    expect(select).toHaveBeenLastCalledWith('session-1', 'minimal')
   })
 })

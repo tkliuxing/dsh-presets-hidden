@@ -1,10 +1,11 @@
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { isBuiltInPreset } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import {
   HIDDEN_IDS_FIELD, ORDER_IDS_FIELD, hasUserOverride, type VisibilitySettings,
 } from '../settings.ts'
-import type { VisibilityState } from './types.ts'
+import type { PresetRecord, RosterState, VisibilityState } from './types.ts'
 
 /** Browser-local preference key. Kept as a fallback for non-loopback pages. */
 export const VISIBILITY_STORAGE_KEY = 'dsh.presets-hidden.visibility.v1'
@@ -39,6 +40,34 @@ export function orderedPresets<T extends { readonly id: string }>(
     if (byId.delete(preset.id)) ordered.push(preset)
   }
   return ordered
+}
+
+/**
+ * Whether the Coding Tools preference withholds this preset. DSH applies
+ * exactly this rule to its own surfaces: the shipped PTC and Minimal presets
+ * are unavailable while Coding Tools is off, and every other preset — Standard,
+ * Creator, custom declarations — stays selectable. A declaration that publishes
+ * its own name for a shipped id owns its behavior, so it is never withheld.
+ */
+export function requiresCodingTools(preset: PresetRecord): boolean {
+  return isBuiltInPreset(preset) && (preset.id === 'ptc' || preset.id === 'minimal')
+}
+
+/**
+ * Presets a new-session surface may offer: healthy, not hidden by the reader,
+ * and available under the Coding Tools preference. Empty means no control is
+ * shown at all.
+ */
+export function offeredPresets(
+  roster: RosterState,
+  visibility: VisibilityState,
+  codingToolsEnabled: boolean,
+): readonly PresetRecord[] {
+  const hidden = new Set(visibility.hiddenIds)
+  return orderedPresets(roster.presets, visibility.orderIds)
+    .filter(preset => preset.broken === undefined
+      && !hidden.has(preset.id)
+      && (codingToolsEnabled || !requiresCodingTools(preset)))
 }
 
 function readLocalStorageState(): VisibilityState {

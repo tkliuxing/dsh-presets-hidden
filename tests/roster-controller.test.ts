@@ -27,7 +27,7 @@ describe('RosterController', () => {
   })
 
   it('reads a chooser-policy-free roster as selection enabled', async () => {
-    // DSH 0.1.7-rc.2 answers presets only; Developer tools are the sole picker gate there.
+    // DSH 0.1.7-rc.2 answers presets only; no chooser policy means selection is open.
     const list = vi.fn(async () => ({
       ok: true,
       value: { presets: [{ id: 'standard', isDefault: true }] },

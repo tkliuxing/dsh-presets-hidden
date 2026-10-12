@@ -6,6 +6,7 @@ export type PresetVisibilityKey =
   | 'visible' | 'hidden' | 'builtInBadge' | 'customBadge' | 'orderGroup'
   | 'defaultBadge' | 'brokenBadge' | 'noDescription' | 'summary'
   | 'emptyRoster' | 'emptyFilter' | 'loadError' | 'retry' | 'allHiddenNotice' | 'pickerOffNotice'
+  | 'codingToolsBadge' | 'codingToolsHint'
   | 'pickerHint' | 'switchRefused' | 'switchLabel' | 'resetOrder'
   | 'moveUp' | 'moveDown' | 'moveUpLabel' | 'moveDownLabel' | 'reorderFilteredHint'
   | 'presetStandardName' | 'presetStandardDescription'
@@ -45,7 +46,9 @@ export const en: Record<PresetVisibilityKey, string> = {
   loadError: 'Could not load agent presets.',
   retry: 'Retry',
   allHiddenNotice: 'All presets are hidden. The new-session preset control is not shown; the Host default still applies.',
-  pickerOffNotice: 'The new-session preset picker is off (Developer tools, or a preset-selection policy the Host still publishes), so the Host default applies. These preferences take effect once it is shown.',
+  pickerOffNotice: 'This Host does not offer preset selection, so the Host default applies. These preferences take effect once it is offered.',
+  codingToolsBadge: 'Needs Coding Tools',
+  codingToolsHint: 'Shown in the new-session picker only while Coding Tools is on in General settings.',
   pickerHint: 'Visible agent presets for the session you are about to start',
   switchRefused: 'Could not switch to {name}: {reason}',
   switchLabel: 'Show {name} in the new-session picker',
@@ -91,7 +94,9 @@ export const zh: Record<PresetVisibilityKey, string> = {
   loadError: '无法加载 Agent 预设。',
   retry: '重试',
   allHiddenNotice: '所有预设均已隐藏。新会话中将不显示预设控件，但 Host 默认预设仍会生效。',
-  pickerOffNotice: '新会话预设选择器当前已关闭（开发者工具，或 Host 仍发布的预设选择策略），将使用 Host 默认预设。选择器显示后这些偏好才会生效。',
+  pickerOffNotice: '当前 Host 未开放预设选择，将使用 Host 默认预设。选择器可用后这些偏好才会生效。',
+  codingToolsBadge: '需要 Coding Tools',
+  codingToolsHint: '仅在「通用设置」中开启 Coding Tools 后，才会出现在新会话预设选择器中。',
   pickerHint: '即将开始的会话中可见的 Agent 预设',
   switchRefused: '无法切换到「{name}」：{reason}',
   switchLabel: '在新会话选择器中显示「{name}」',

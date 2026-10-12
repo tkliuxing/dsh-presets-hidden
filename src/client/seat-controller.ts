@@ -3,7 +3,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { PresetRecord, RosterState, SeatState, VisibilityState } from './types.ts'
-import { orderedPresets } from './visibility-store.ts'
+import { offeredPresets } from './visibility-store.ts'
 
 type SessionLike = Pick<SessionSummary, 'id' | 'blank' | 'projectionValues'>
 
@@ -14,16 +14,7 @@ function presetOf(session: SessionLike | undefined): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
 
-function healthyVisible(
-  roster: RosterState,
-  visibility: VisibilityState,
-): readonly PresetRecord[] {
-  const hidden = new Set(visibility.hiddenIds)
-  return orderedPresets(roster.presets, visibility.orderIds)
-    .filter(preset => preset.broken === undefined && !hidden.has(preset.id))
-}
-
-/** Stages only visible presets for the next blank session. */
+/** Stages only presets the new-session picker may offer for the next blank session. */
 export class FilteredPresetSeatController {
   readonly store: SnapshotStore<SeatState> = createSnapshotStore(INITIAL)
   private staged: string | undefined
@@ -34,8 +25,12 @@ export class FilteredPresetSeatController {
     private readonly roster: SnapshotStore<RosterState>,
     private readonly visibility: SnapshotStore<VisibilityState>,
     private readonly currentSession: () => SessionLike | undefined,
-    /** Whether the new-session surface currently offers preset selection at all. */
-    private readonly pickerEnabled: () => boolean = () => true,
+    /**
+     * Whether the Coding Tools preference is on. Off withholds the shipped PTC
+     * and Minimal presets, exactly as the official picker does; it never hides
+     * the picker itself.
+     */
+    private readonly codingToolsEnabled: () => boolean = () => true,
   ) {}
 
   private set(patch: Partial<SeatState>): void {
@@ -43,7 +38,11 @@ export class FilteredPresetSeatController {
   }
 
   private visiblePresets(): readonly PresetRecord[] {
-    return healthyVisible(this.roster.getSnapshot(), this.visibility.getSnapshot())
+    return offeredPresets(
+      this.roster.getSnapshot(),
+      this.visibility.getSnapshot(),
+      this.codingToolsEnabled(),
+    )
   }
 
   private effectivePreset(session: SessionLike | undefined): string | undefined {
@@ -60,9 +59,9 @@ export class FilteredPresetSeatController {
     return this.pendingProjection.preset
   }
 
-  /** Developer tools and any Host chooser policy an older Host still publishes must both allow it. */
+  /** The Host's own chooser policy is the only remaining gate over selection. */
   private selectable(): boolean {
-    return this.roster.getSnapshot().modeSelectionEnabled && this.pickerEnabled()
+    return this.roster.getSnapshot().modeSelectionEnabled
   }
 
   private fallback(): string {
@@ -158,5 +157,3 @@ export class FilteredPresetSeatController {
     this.set({ busy: false, error: null, current: result.value })
   }
 }
-
-export { healthyVisible }

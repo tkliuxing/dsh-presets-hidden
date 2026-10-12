@@ -16,7 +16,9 @@ export interface RosterState {
   /**
    * Whether the Host exposes preset selection on new-session surfaces. Hosts
    * that publish no chooser policy (DSH 0.1.7-rc.2 and later) report `true`:
-   * there, Developer tools are the only gate over the picker.
+   * there, this policy is the only gate over the picker, and the Coding Tools
+   * preference withholds the shipped PTC and Minimal presets instead of hiding
+   * the picker.
    */
   readonly modeSelectionEnabled: boolean
 }
@@ -36,8 +38,8 @@ export interface VisibilityFace {
   readonly hooks: {
     readonly roster: SnapshotStore<RosterState>
     readonly presetVisibility: SnapshotStore<VisibilityState>
-    /** Developer-tools preference that gates the official picker. */
-    readonly showPresetPicker: ObservableSnapshot<boolean>
+    /** Coding Tools preference: off withholds the shipped PTC and Minimal presets. */
+    readonly codingToolsEnabled: ObservableSnapshot<boolean>
   }
   readonly load: () => Promise<void>
   readonly toggle: (id: string) => void
@@ -51,8 +53,8 @@ export interface SeatFace {
     readonly roster: SnapshotStore<RosterState>
     readonly presetVisibility: SnapshotStore<VisibilityState>
     readonly filteredPresetSeat: SnapshotStore<SeatState>
-    /** Developer-tools preference that gates the official picker. */
-    readonly showPresetPicker: ObservableSnapshot<boolean>
+    /** Coding Tools preference: off withholds the shipped PTC and Minimal presets. */
+    readonly codingToolsEnabled: ObservableSnapshot<boolean>
   }
   readonly load: () => Promise<void>
   readonly select: (id: string) => Promise<string | undefined>

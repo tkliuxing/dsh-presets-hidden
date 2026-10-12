@@ -1,6 +1,6 @@
 {
   "name": "dsh-presets-hidden",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "UI-only agent preset visibility and ordering controls for DeepSeek Harness",
   "license": "MIT",
   "author": "tkliuxing",

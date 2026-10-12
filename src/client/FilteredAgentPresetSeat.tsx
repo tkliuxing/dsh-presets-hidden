@@ -9,7 +9,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type { SeatFace } from './types.ts'
-import { orderedPresets } from './visibility-store.ts'
+import { offeredPresets } from './visibility-store.ts'
 
 export type FilteredAgentPresetSeatProps =
   PropsRuntime<'conversation.hero.agentPreset'>
@@ -21,9 +21,9 @@ const REFUSAL_HOLD_MS = 8000
 export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
   const {
     load, select, sessionId, t, useFilteredPresetSeat, usePresetVisibility, useRoster,
-    useSessionRetainInfo, useShowPresetPicker,
+    useSessionRetainInfo, useCodingToolsEnabled,
   } = props
-  const showPresetPicker = useShowPresetPicker(value => value)
+  const codingToolsEnabled = useCodingToolsEnabled(value => value)
   // Embedded conversations render the same hero; only the main view may pick for its session.
   const main = useSessionRetainInfo(info => sessionId === undefined || (info?.retainedBy.mainView ?? 0) > 0)
   const roster = useRoster(snapshot => snapshot)
@@ -34,9 +34,10 @@ export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
   const toastId = useRef(0)
   const anchorRef = useRef<HTMLButtonElement | null>(null)
 
-  // The same gate as the official chip: Developer tools, plus the Host's own
-  // chooser policy on the versions that still publish one (see RosterController).
-  const visible = main && showPresetPicker && roster.modeSelectionEnabled
+  // The Host's own chooser policy is the only gate the official chip still has
+  // on the versions that publish one (see RosterController). Coding Tools does
+  // not hide the chip: it withholds the shipped PTC and Minimal presets below.
+  const visible = main && roster.modeSelectionEnabled
 
   useEffect(() => {
     void load()
@@ -51,9 +52,7 @@ export function FilteredAgentPresetSeat(props: FilteredAgentPresetSeatProps) {
 
   if (!visible) return null
 
-  const hidden = new Set(visibility.hiddenIds)
-  const options = orderedPresets(roster.presets, visibility.orderIds)
-    .filter(preset => preset.broken === undefined && !hidden.has(preset.id))
+  const options = offeredPresets(roster, visibility, codingToolsEnabled)
   if (options.length === 0) return null
   const chosen = options.find(preset => preset.id === seat.current) ?? options[0]
   if (chosen === undefined) return null

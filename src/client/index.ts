@@ -50,13 +50,15 @@ export function apply(ctx: ClientContext): void {
     return () => { style.remove() }
   }, 'presets-hidden: styles')
 
+  // Coding Tools (the `ui-settings` preference DSH also calls Developer tools):
+  // off withholds the shipped PTC and Minimal presets from every surface below.
   const developerTools = ctx.configForms.developerTools.enabled
 
   const visibilityFace = (): VisibilityFace => ({
     hooks: {
       roster: roster.store,
       presetVisibility: visibility.store,
-      showPresetPicker: developerTools,
+      codingToolsEnabled: developerTools,
     },
     load: () => roster.load(),
     toggle: id => { visibility.toggle(id) },
@@ -107,7 +109,7 @@ export function apply(ctx: ClientContext): void {
         roster: roster.store,
         presetVisibility: visibility.store,
         filteredPresetSeat: seat.store,
-        showPresetPicker: developerTools,
+        codingToolsEnabled: developerTools,
       },
       load: async () => {
         await roster.load()
@@ -119,7 +121,8 @@ export function apply(ctx: ClientContext): void {
     scope.effect(() => {
       const stopRoster = roster.store.subscribe(() => { void seat.reconcile() })
       const stopVisibility = visibility.store.subscribe(() => { void seat.reconcile() })
-      const stopDeveloperTools = developerTools.subscribe(() => { void seat.reconcile() })
+      // A flip moves which presets the picker may offer, so the stage is re-derived.
+      const stopCodingTools = developerTools.subscribe(() => { void seat.reconcile() })
       const stopSessions = scope.sessions.list.subscribe(() => { void seat.apply() })
       const unregister = scope.slots.inject('conversation.hero.agentPreset', () => scope.slots.register({
         name: 'conversation.hero.agentPreset',
@@ -130,7 +133,7 @@ export function apply(ctx: ClientContext): void {
       return () => {
         stopRoster()
         stopVisibility()
-        stopDeveloperTools()
+        stopCodingTools()
         stopSessions()
         unregister()
       }
