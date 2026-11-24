@@ -11,6 +11,8 @@ DeepSeek Harness 的浏览器端预设显示与排序插件。它在“设置 ->
 > `0.2.2` 起 `peerDependencies` 覆盖 `0.1.7-rc.1` 与 `0.2.0-rc.1` 两代，因此 DSH `0.2.0-rc.x` 不再把本插件判为不兼容（此前 `0.2.1` 及更早版本的 peer 范围是 `^0.1.7-rc.1`，在 0.2 线上会被 DSH 的插件兼容性门禁拒绝安装 / 跳过加载）。0.2 线的验证覆盖：真实安装门禁、构建与全部单元测试。
 >
 > `0.2.3` 起跟进上游对 Coding Tools 的语义变更（issue #2）。DSH `0.2.1-alpha.1` 起，`developerTools.enabled` 不再是「关掉就整只预设控件消失」的总开关，而是「关闭时只隐藏内置 PTC / Minimal」的 Coding Tools 开关。插件现在按同一规则处理：关闭时 PTC / Minimal 不进选择器、不可切换，控件本身保持显示。旧版 DSH（≤ `0.2.0-rc.2`）上官方控件关闭时仍会整体隐藏，而本插件保留控件——这是有意的行为分歧，见「行为边界」。
+>
+> `0.2.4` 起同时适配 cordis 4.2 线（DSH `0.2.3-alpha.2` 及更新版本，issue #3）。cordis `4.2.0-alpha.1` 移除了实例属性 `ctx.root`，改为符号键 `ctx[Context.root]`，读取旧字段会抛 `cannot get property "root" without inject`；因此此前版本里“等 Loader 装配完成再导入遗留设置”这一步在 alpha 线上会被宿主静默吞掉，`settings.yaml.imported` 中的显隐名单永远不会导入。现在插件按两种载体读取根上下文（4.0/4.1 的 `ctx.root` 与 4.2 的 `Symbol.for('cordis.root')`），两种都读不到时只记一条警告、不猜，`peerDependencies` 也覆盖 `cordis ~4.2.0-alpha.1`。alpha 线的验证覆盖：隔离宿主真实安装与启动、遗留导入确实写进 profile、完整单元测试与 `tsc`。
 
 ## 行为边界
 
@@ -43,6 +45,8 @@ pnpm run check
 ```
 
 若希望使用本机 DSH 源码 checkout 进行开发，可在 `.npmrc` 或 `package.json` 的 `pnpm.overrides` 中把相关 `@deepseek-ai/*` 依赖指向本地路径，替代默认的 registry 版本。
+
+`devDependencies` 固定在支持的下限（`0.1.7-rc.1` 线，cordis 4.0.4），用来守住向后兼容。要校验更新的 dsh / cordis 线（例如 `0.2.3-alpha.2` + cordis 4.2），在仓库外的临时副本里把 `@deepseek-ai/*` devDependencies 钉到目标版本再跑 `pnpm install && npx tsc --noEmit && npx vitest run`，不要改本仓库的 devDependencies。Host 半刻意不 `import { Context }`：cordis 由运行中的 dsh 提供，插件包自己再引一份可能解析到另一个副本，所以根上下文按两种载体读取——cordis 4.0/4.1 的 `ctx.root` 字段与 4.2 的 `Symbol.for('cordis.root')`（见 `src/root.ts`）。
 
 ## 安装到 Web profile（本地 bundle）
 

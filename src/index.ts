@@ -6,6 +6,7 @@ import type {} from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import { importLegacySection } from './legacy.ts'
+import { rootContext } from './root.ts'
 import { HIDDEN_IDS_FIELD, ORDER_IDS_FIELD } from './settings.ts'
 
 /** Live preset visibility; every field is volatile, so form edits apply without remounting. */
@@ -25,8 +26,15 @@ export function apply(ctx: Context): void {
   ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
 
   // The settings service describes only active entries, so wait for the Loader to settle first.
+  // `rootContext` covers both cordis lines: `ctx.root` on 4.0/4.1 and `ctx[Context.root]` on 4.2+,
+  // where reading the removed `root` field throws and silently kills this import.
   ctx.inject(['settings', 'profileContext'], (child) => {
-    void child.root.loader.await()
+    const root = rootContext(child)
+    if (root === undefined) {
+      child.logger.warn('cannot locate the root context; skipped the legacy preset-visibility import')
+      return
+    }
+    void root.loader.await()
       .then(() => importLegacySection(child.settings, child.profileContext.home))
       .then((imported) => {
         if (imported) child.logger.info('imported the legacy preset-visibility section into the active profile')

@@ -11,6 +11,8 @@ A browser-side DeepSeek Harness plugin for controlling agent-preset visibility a
 > From `0.2.2` the `peerDependencies` cover both the `0.1.7-rc.1` and `0.2.0-rc.1` lines, so DSH `0.2.0-rc.x` no longer classifies this plugin as incompatible (through `0.2.1` the peer range was `^0.1.7-rc.1`, which DSH's plugin compatibility gate rejected at install time and skipped at load time). The 0.2 line is verified through the real install gate, the build, and the full unit-test suite.
 >
 > From `0.2.3` the plugin follows upstream's Coding Tools semantics change (issue #2). Since DSH `0.2.1-alpha.1`, `developerTools.enabled` is no longer a master switch that hides the whole preset control: it is the Coding Tools switch, and turning it off withholds only the shipped PTC and Minimal presets. The plugin now applies the same rule — PTC and Minimal leave the picker and cannot be switched to, while the control itself stays visible. On older DSH (through `0.2.0-rc.2`), where the official control still hides entirely when the preference is off, this plugin keeps the control: an intentional divergence, documented under Behavior boundaries.
+>
+> From `0.2.4` the plugin also supports the cordis 4.2 line (DSH `0.2.3-alpha.2` and later, issue #3). cordis `4.2.0-alpha.1` removed the `ctx.root` instance field in favour of the symbol key `ctx[Context.root]`, and reading the old field throws `cannot get property "root" without inject`. Through `0.2.3` that killed the Host half's "wait for the Loader, then import the legacy section" step silently: the `settings.yaml.imported` section was never imported. The plugin now reads the root through either carrier (the `ctx.root` field on 4.0/4.1, `Symbol.for('cordis.root')` on 4.2) and logs a warning instead of guessing when neither is present; `peerDependencies` cover `cordis ~4.2.0-alpha.1` as well. The alpha line is verified through a real install and boot in an isolated Host, the legacy import landing in the profile, the full unit-test suite, and `tsc`.
 
 ## Behavior boundaries
 
@@ -43,6 +45,8 @@ pnpm run check
 ```
 
 If you want to develop against a local deepseek-harness checkout, override the relevant `@deepseek-ai/*` dependencies to local paths via `.npmrc` or `pnpm.overrides` in `package.json` instead of the default registry versions.
+
+`devDependencies` are pinned to the bottom of the supported range (the `0.1.7-rc.1` line, cordis 4.0.4) to hold backward compatibility. To check a newer dsh / cordis line (for example `0.2.3-alpha.2` with cordis 4.2), pin the `@deepseek-ai/*` devDependencies to the target versions in a throwaway copy outside this repository and run `pnpm install && npx tsc --noEmit && npx vitest run`; do not move this repository's devDependencies. The Host half deliberately does not `import { Context }`: cordis comes from the running dsh, and importing it from the plugin package could resolve to a second copy, so the root context is read through either carrier — the `ctx.root` field on cordis 4.0/4.1 and `Symbol.for('cordis.root')` on 4.2 (see `src/root.ts`).
 
 ## Install as a local bundle (Web profile)
 
